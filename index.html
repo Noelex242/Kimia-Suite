@@ -1,0 +1,1446 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+  <title>kimiaSuite – Calculateur</title>
+  <!-- Librairies (CDN) pour export -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/1.5.3/jspdf.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.2.11/jspdf.plugin.autotable.min.js"></script>
+  <style>
+    /* =========================
+       THEME & LAYOUT (gardé de ton fichier d'origine)
+       ========================= */
+    :root{
+      --brand:#2563eb;
+      --brand-light:#dbeafe;
+      --brand-dark:#1d4ed8;
+      --bg:#f8fafc;
+      --card:#ffffff;
+      --muted:#64748b;
+      --danger:#ef4444;
+      --warn:#f59e0b;
+      --success:#16a34a;
+      --border:#e2e8f0;
+      --text:#0b1220;
+    }
+    :root.dark {
+      --bg:#0b1220;
+      --card:#0f172a;
+      --border:#273444;
+      --muted:#cbd5e1;
+      --text:#ffffff;
+    }
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{
+      font-family: 'Segoe UI', Roboto, Arial, system-ui, -apple-system;
+      background:var(--bg);
+      color:var(--text);
+      -webkit-font-smoothing:antialiased;
+      -moz-osx-font-smoothing:grayscale;
+      line-height:1.5;
+      padding-bottom:4rem;
+    }
+    header{
+      position:sticky;
+      top:0;
+      z-index:60;
+      background:var(--card);
+      border-bottom:1px solid var(--border);
+      padding:1rem 1.25rem;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:1rem;
+      box-shadow:0 2px 8px rgba(0,0,0,0.04);
+    }
+    header h1{font-size:1.15rem;display:flex;align-items:center;gap:0.6rem;margin:0;color:var(--text)}
+    header svg{width:28px;height:28px;fill:var(--text)}
+    .menu, .theme-toggle{
+      background:none;border:none;font-size:1.25rem;cursor:pointer;color:var(--text)
+    }
+    .menu:hover, .theme-toggle:hover{color:var(--brand)}
+    :root.dark .menu { color: #fff; }
+    #menuBtn { font-size: 1.6rem; background: none; border: none; cursor: pointer; color: var(--text); }
+    :root.dark #menuBtn { color: #fff; }
+    .dashboard{padding:1.25rem;max-width:1200px;margin:0 auto;min-height:calc(100vh - 110px);overflow-y:auto}
+    .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:1rem;margin-bottom:1.5rem}
+    .card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:1rem;display:flex;gap:1rem;align-items:center;cursor:pointer;box-shadow:0 1px 3px rgba(0,0,0,0.04);transition:transform 0.2s,box-shadow 0.2s}
+    .card:hover{box-shadow:0 6px 20px rgba(0,0,0,0.06);transform:translateY(-2px)}
+    .card svg{width:34px;height:34px;fill:var(--brand)}
+    .card span{font-weight:700;color:var(--text)}
+    .section-content {
+      display: none;
+      padding: 1.25rem;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+      margin-bottom: 1.25rem;
+    }
+    .section-content.active {
+      display: block;
+    }
+    .section-content h2 {
+      color: var(--brand);
+      margin-bottom: 0.75rem;
+      font-size: 1.2rem;
+    }
+    .section-hint {
+      margin-bottom: 0.75rem;
+      font-size: 0.9rem;
+      color: var(--muted);
+    }
+    .badge {
+      display: inline-block;
+      padding: 0.25rem 0.6rem;
+      border-radius: 999px;
+      background: var(--brand-light);
+      color: var(--brand);
+      font-weight: 700;
+      margin: 0 0.25rem;
+      font-size: 0.85rem;
+      border: 1px solid rgba(37,99,235,0.12);
+    }
+    .controls {
+      display: flex;
+      gap: 0.75rem;
+      align-items: center;
+      flex-wrap: wrap;
+      margin-bottom: 0.75rem;
+    }
+    .controls input[type="number"], .controls input[type="text"] {
+      padding: 0.75rem 1rem;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      min-width: 200px;
+      max-width: 420px;
+      font-size: 1rem;
+    }
+    .button-row {
+      display: flex;
+      gap: 0.6rem;
+      flex-wrap: wrap;
+    }
+    .button-row button {
+      padding: 0.65rem 1rem;
+      border-radius: 10px;
+      border: none;
+      cursor: pointer;
+      font-weight: 700;
+      color: white;
+      font-size: 0.9rem;
+      transition: all 0.2s;
+    }
+    .btn-primary { background: var(--brand); }
+    .btn-primary:hover { background: var(--brand-dark); }
+    .btn-danger { background: var(--danger); }
+    .btn-warning { background: var(--warn); }
+    .result-box {
+      background: #f0fdf4;
+      border: 1px solid #bbf7d0;
+      color: var(--success);
+      padding: 0.9rem;
+      border-radius: 10px;
+      font-weight: 700;
+      margin: 0.75rem 0;
+      overflow: auto;
+      font-size: 0.95rem;
+    }
+    :root.dark .result-box {
+      background: #07162a;
+      border-color: #173044;
+      color: var(--success);
+    }
+    .filter-row {
+      display: flex;
+      gap: 0.5rem;
+      margin-top: 0.5rem;
+      margin-bottom: 0.75rem;
+    }
+    .filter-row input {
+      padding: 0.65rem;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      font-size: 0.9rem;
+    }
+    .table-container {
+      overflow: auto;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      margin-top: 0.5rem;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 700px;
+    }
+    th, td {
+      padding: 8px 10px;
+      text-align: center;
+      border-bottom: 1px solid var(--border);
+      font-size: 0.9rem;
+    }
+    thead th {
+      position: sticky;
+      top: 0;
+      background: var(--card);
+      z-index: 2;
+      font-weight: 800;
+    }
+    tbody tr:hover {
+      background: #f3f6ff;
+    }
+    tfoot td {
+      font-weight: 900;
+      background: #f7faff;
+    }
+    :root.dark tfoot td { background: #07162a; }
+    :root.dark tfoot td strong { color: #ffffff !important; font-weight: 900; }
+    .section-specific-content {
+      margin-top: 1.25rem;
+      margin-bottom: 1.25rem;
+    }
+    .param-group {
+      background: var(--border);
+      padding: 0.9rem;
+      border-radius: 10px;
+      margin-bottom: 0.9rem;
+    }
+    .param-row {
+      display: flex;
+      gap: 0.5rem;
+      align-items: center;
+      margin-bottom: 0.5rem;
+    }
+    .param-row label {
+      min-width: 180px;
+      font-weight: 400;
+    }
+    .param-group h3 {
+      font-weight: 700;
+      margin-bottom: 0.4rem;
+    }
+    .extra-grille-row {
+      display: flex;
+      gap: 0.5rem;
+      align-items: center;
+      margin-bottom: 0.5rem;
+      flex-wrap: wrap;
+    }
+    .extra-grille-row input {
+      flex: 1;
+      min-width: 120px;
+      padding: 0.5rem;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      font-size: 0.9rem;
+    }
+    .extra-grille-row .remove-btn {
+      padding: 0.45rem 0.6rem;
+      border-radius: 8px;
+      border: none;
+      cursor: pointer;
+      background: var(--danger);
+      color: white;
+      font-size: 0.8rem;
+    }
+    .toast {
+      position: fixed;
+      right: 1rem;
+      top: 1rem;
+      background: var(--success);
+      color: white;
+      padding: 0.6rem 0.9rem;
+      border-radius: 8px;
+      z-index: 9999;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+      transform: translateX(120%);
+      transition: transform 0.28s;
+    }
+    .toast.show { transform: translateX(0); }
+    .toast.error { background: var(--danger); }
+    .toast.warning { background: var(--warn); }
+    @media (max-width:768px){
+      .cards{grid-template-columns:1fr}
+      .controls{flex-direction:column}
+      .controls input{min-width:100%}
+      .extra-grille-row{flex-direction:column;align-items:stretch}
+      .param-row{flex-direction:column;align-items:stretch}
+      .param-row label{width:100%;margin-bottom:0.35rem}
+    }
+    .btn-style, .btn-save {
+      background: linear-gradient(135deg,#10b981,#059669);
+      padding: 0.55rem 0.8rem;
+      color: white;
+      border-radius: 8px;
+      border: none;
+      box-shadow: 0 4px 12px rgba(16,185,129,0.15);
+      cursor: pointer;
+      font-weight: 700;
+      font-size: 0.85rem;
+      transition: all 0.2s;
+    }
+    .btn-style:hover, .btn-save:hover { transform: translateY(-1px); }
+    .section-no-style {
+      border: none;
+      box-shadow: none;
+      background: none;
+      padding: 0;
+      margin: 0;
+      pointer-events: auto;
+    }
+    /* Style pour les cases à cocher */
+    .checkbox-row {
+      display: flex;
+      gap: 1.5rem;
+      align-items: center;
+      margin: 0.5rem 0;
+    }
+    .checkbox-label {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-weight: 600;
+      cursor: pointer;
+      color: var(--text);
+      padding: 0.4rem 0.8rem;
+      border-radius: 8px;
+    }
+    .checkbox-label input[type="checkbox"] {
+      width: 18px;
+      height: 18px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <!-- TOAST -->
+  <div id="toastContainer"></div>
+  <!-- HEADER -->
+  <header>
+    <h1 id="appTitle">kimiaSuite</h1>
+    <div id="objectifs-stats" style="text-align:center; padding:0.5rem 0; font-size:0.9rem; color:var(--muted);"></div>
+    <div style="display:flex;align-items:center;gap:0.6rem">
+      <button id="themeToggle" title="Changer thème" class="theme-toggle" style="font-size: 1.3rem;">🌙</button>
+      <button id="menuBtn" class="menu" title="Masquer/Montrer menu" style="font-size: 1.6rem;">☰</button>
+    </div>
+  </header>
+  <main class="dashboard">
+    <div class="cards" id="menu-cards">
+      <div class="card" onclick="afficherSection('extra')">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none">
+            <rect x="4" y="5" width="16" height="14" rx="2" fill="#2563eb" />
+            <path d="M5 10C5 9.44772 5.44772 9 6 9H18C18.5523 9 19 9.44772 19 10V14C19 14.5523 18.5523 15 18 15H6C5.44772 15 5 14.5523 5 14V10Z" fill="#1d4ed8" opacity="0.7" />
+            <text x="12" y="14" text-anchor="middle" fill="white" font-size="8" font-family="Arial, sans-serif" font-weight="bold">E</text>
+            <path d="M4 5L5 6M20 5L19 6M4 19L5 18M20 19L19 18" stroke="#1d4ed8" stroke-width="1" />
+          </svg>
+        <span>Frais MoMo extra</span>
+      </div>
+      <div class="card" onclick="afficherSection('simple')">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M16 1H8C6.34 1 5 2.34 5 4v16c0 1.66 1.34 3 3 3h8c1.66 0 3-1.34 3-3V4c0-1.66-1.34-3-3-3zm-2 20h-4v-1h4v1zm3.25-3H6.75V4h10.5v14z"/>
+          </svg>
+        <span>Frais MoMoPay</span>
+      </div>
+      <div class="card" onclick="afficherSection('autres')">
+        <svg xmlns="http://www.w3.org/2000/svg" width="34" height="34" viewBox="0 0 34 34" fill="none">
+            <path d="M6 8C6 6.89543 6.89543 6 8 6H26C27.1046 6 28 6.89543 28 8V26C28 27.1046 27.1046 28 26 28H8C6.89543 28 6 27.1046 6 26V8Z" fill="#000000" opacity="0.1" transform="translate(1,1)" />
+            <rect x="6" y="6" width="22" height="22" rx="3" fill="#4CAF50" />
+            <path d="M8 14C8 13.4477 8.44772 13 9 13H25C25.5523 13 26 13.4477 26 14V20C26 20.5523 25.5523 21 25 21H9C8.44772 21 8 20.5523 8 20V14Z" fill="#2E7D32" opacity="0.7" />
+            <text x="17" y="19" text-anchor="middle" fill="white" font-size="10" font-family="Arial, sans-serif" font-weight="bold">$</text>
+            <path d="M6 6L7 7M28 6L27 7M6 28L7 27M28 28L27 27" stroke="#2E7D32" stroke-width="1.5" />
+          </svg>
+        <span>Frais MoMo</span>
+      </div>
+      <div class="card" onclick="afficherSection('parametres')">
+        <svg viewBox="0 0 24 24"><path d="M19.14,12.94c0.04-0.3,0.06-0.61,0.06-0.94c0-0.32-0.02-0.64-0.07-0.94l2.03-1.58c0.18-0.14,0.23-0.41,0.12-0.61 l-1.92-3.32c-0.12-0.22-0.37-0.29-0.59-0.22l-2.39,0.96c-0.5-0.38-1.03-0.7-1.62-0.94L14.4,2.81c-0.04-0.24-0.24-0.41-0.48-0.41 h-3.84c-0.24,0-0.43,0.17-0.47,0.41L9.25,5.35C8.66,5.59,8.12,5.92,7.63,6.29L5.24,5.33c-0.22-0.08-0.47,0-0.59,0.22L2.74,8.87 C2.62,9.08,2.66,9.34,2.86,9.48l2.03,1.58C4.84,11.36,4.82,11.69,4.82,12s0.02,0.64,0.07,0.94l-2.03,1.58 c-0.18,0.14-0.23,0.41-0.12,0.61l1.92,3.32c0.12,0.22,0.37,0.29,0.59,0.22l2.39-0.96c0.5,0.38,1.03,0.7,1.62,0.94l0.36,2.54 c0.05,0.24,0.24,0.41,0.48,0.41h3.84c0.24,0,0.44-0.17,0.47-0.41l0.36-2.54c0.59-0.24,1.13-0.56,1.62-0.94l2.39,0.96 c0.22,0.08,0.47,0,0.59-0.22l1.92-3.32c0.12-0.22,0.07-0.47-0.12-0.61L19.14,12.94z M12,15.6c-1.98,0-3.6-1.62-3.6-3.6 s1.62-3.6,3.6-3.6s3.6,1.62,3.6,3.6S13.98,15.6,12,15.6z"/></svg>
+        <span>Paramètres</span>
+      </div>
+    </div>
+    <!-- =========================
+         FRAIS MoMoPay (EXTRA)
+         ========================= -->
+    <section class="section-no-style section-content" id="extra-section">
+      <h2>Frais MoMo extra</h2>
+      <div id="tarifs-inline" style="display:none;margin-bottom:0.8rem;border:1px dashed var(--border);padding:0.6rem;border-radius:8px;background:transparent"></div>
+      <div class="controls">
+        <input id="montant-extra" type="number" placeholder="Montant (XAF)" min="250" step="50" />
+        <div class="checkbox-row">
+          <label class="checkbox-label">
+            <input type="checkbox" id="operation-retrait" checked />
+            <span>Retrait</span>
+          </label>
+          <label class="checkbox-label">
+            <input type="checkbox" id="operation-depot" />
+            <span>Dépôt</span>
+          </label>
+        </div>
+        <div class="button-row">
+          <button class="btn-primary" onclick="calculerExtra()">Enregistrer</button>
+          <button class="btn-primary" onclick="exporterExcel('extra')">Excel</button>
+          <button class="btn-primary" onclick="exporterPDF('extra')">PDF</button>
+          <button class="btn-danger" onclick="reinitHistorique('extra')">Réinitialiser</button>
+        </div>
+      </div>
+      <div id="resultat-extra" class="result-box">Résultat ici…</div>
+      <div class="filter-row">
+        <input id="filter-montant-extra" placeholder="Filtrer par Montant" oninput="majHistorique('extra')" />
+      </div>
+      <div class="table-container">
+        <table aria-describedby="historique-extra">
+          <thead>
+            <tr>
+              <th>Montant</th>
+              <th>Frais transactions</th>
+              <th>Commission client</th>
+              <th>Total transaction</th>
+              <th>Bénéfice net agent</th>
+              <th>Date</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody id="historique-extra"></tbody>
+          <tfoot id="totaux-extra"><tr><td colspan="4"><strong>Total général</strong></td><td><strong>0</strong></td><td colspan="2"></td></tr></tfoot>
+        </table>
+      </div>
+      <div class="section-specific-content"></div>
+    </section>
+    <!-- =========================
+         FRAIS MoMoPay (SIMPLE)
+         ========================= -->
+    <section class="section-no-style section-content" id="simple-section">
+      <h2>Frais MoMoPay</h2>
+      <div class="controls">
+        <input id="montant-simple" type="number" placeholder="Montant envoyé (XAF)" min="250" step="50" />
+        <div class="button-row">
+          <button class="btn-primary" onclick="calculerSimple()">Enregistrer</button>
+          <button class="btn-primary" onclick="exporterExcel('simple')">Excel</button>
+          <button class="btn-primary" onclick="exporterPDF('simple')">PDF</button>
+          <button class="btn-danger" onclick="reinitHistorique('simple')">Réinitialiser</button>
+        </div>
+      </div>
+      <div id="resultat-simple" class="result-box">Résultat ici…</div>
+      <div class="filter-row">
+        <input id="filter-montant-simple" placeholder="Filtrer par Montant" oninput="majHistorique('simple')" />
+      </div>
+      <div class="table-container">
+        <table>
+          <thead>
+            <tr>
+              <th>Montant</th>
+              <th>Frais transaction</th>
+              <th>Commission retrait agent</th>
+              <th>Total client</th>
+              <th>Bénéfice net agent</th>
+              <th>Date</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody id="historique-simple"></tbody>
+          <tfoot id="totaux-simple"><tr><td colspan="4"><strong>Total général</strong></td><td><strong>0</strong></td><td colspan="2"></td></tr></tfoot>
+        </table>
+      </div>
+      <div class="section-specific-content"></div>
+    </section>
+    <!-- =========================
+         FRAIS MoMo (AUTRES)
+         ========================= -->
+    <section class="section-no-style section-content" id="autres-section">
+      <h2>Frais MoMo</h2>
+      <div class="controls">
+        <input id="montant-autres" type="number" placeholder="Montant (XAF)" min="250" step="50" />
+        <div class="checkbox-row">
+          <label class="checkbox-label">
+            <input type="checkbox" id="retrait-effectue" checked />
+            <span>Retrait</span>
+          </label>
+          <label class="checkbox-label">
+            <input type="checkbox" id="depot-effectue" checked />
+            <span>Dépôt</span>
+          </label>
+        </div>
+        <div class="button-row">
+          <button class="btn-primary" onclick="calculerAutres()">Enregistrer</button>
+          <button class="btn-primary" onclick="exporterExcel('autres')">Excel</button>
+          <button class="btn-primary" onclick="exporterPDF('autres')">PDF</button>
+          <button class="btn-danger" onclick="reinitHistorique('autres')">Réinitialiser</button>
+        </div>
+      </div>
+      <div id="resultat-autres" class="result-box">Résultat ici…</div>
+      <div class="filter-row">
+        <input id="filter-montant-autres" placeholder="Filtrer par Montant" oninput="majHistorique('autres')" />
+      </div>
+      <div class="table-container">
+        <table>
+          <thead>
+            <tr>
+              <th>Montant</th>
+              <th>Commission retrait</th>
+              <th>Commission dépôt</th>
+              <th>Total client</th>
+              <th>Bénéfice net agent</th>
+              <th>Date</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody id="historique-autres"></tbody>
+          <tfoot id="totaux-autres"><tr><td colspan="4"><strong>Total général</strong></td><td><strong>0</strong></td><td colspan="2"></td></tr></tfoot>
+        </table>
+      </div>
+    </section>
+    <!-- =========================
+         PARAMÈTRES
+         ========================= -->
+    <section class="section-no-style section-content" id="parametres-section">
+      <h2>⚙️ Paramètres</h2>
+      <div class="section-hint"></div>
+      <div id="resultat-parametres" class="result-box" style="display:none;"></div>
+      <div class="section-specific-content">
+        <div class="param-group">
+          <h3>📱 Apparence</h3>
+          <div class="param-row">
+            <label>Nom de l'application</label>
+            <input id="param-nom-app" type="text" placeholder="kimiaSuite – Calculateur" />
+          </div>
+        </div>
+        <div class="param-group">
+          <h3>📊 Grille Frais MoMo extra</h3>
+          <p class="small" style="margin-bottom:0.4rem">Modifie les tranches. Ex : min=250, max=11000, frais=50.</p>
+          <div id="param-extra-grille-container" aria-live="polite"></div>
+          <div style="margin-top:0.6rem;display:flex;gap:0.5rem">
+            <button class="btn-style" onclick="ajouterTrancheExtra()">➕ Ajouter une tranche</button>
+            <button class="btn-style" onclick="reinitialiserGrilleParDefaut()">♻️ Réinitialiser par défaut</button>
+          </div>
+        </div>
+        <div class="param-group">
+          <h3>Frais MoMo extra</h3>
+          <div class="param-row"><label>Bénéfice agent (formule)</label><input id="param-extra-formule" type="text" placeholder="Formule bénéfice agent" /></div>
+          <div class="param-row"><label>Montant minimum (XAF)</label><input id="param-extra-min" type="number" step="50" min="0" /></div>
+          <div class="param-row"><label>Commission client Retrait (%)</label><input id="param-extra-commission-retrait" type="number" step="0.01" min="0" max="100" placeholder="0.25" /></div>
+          <div class="param-row"><label>Commission client Dépôt (%)</label><input id="param-extra-commission-depot" type="number" step="0.01" min="0" max="100" placeholder="0.25" /></div>
+        </div>
+        <div class="param-group">
+          <h3>Frais MoMoPay</h3>
+          <div class="param-row"><label>Frais client (%)</label><input id="param-simple-frais" type="number" step="0.01" min="0" max="100" /></div>
+          <div class="param-row"><label>Commission agent (%)</label><input id="param-simple-commission" type="number" step="0.01" min="0" max="100" /></div>
+          <div class="param-row"><label>Montant minimum (XAF)</label><input id="param-simple-min" type="number" step="50" min="0" /></div>
+        </div>
+        <div class="param-group">
+          <h3>Frais MoMo</h3>
+          <div class="param-row"><label>Frais client (%)</label><input id="param-autres-frais-client" type="number" step="0.01" min="0" max="100" /></div>
+          <div class="param-row"><label>Commission retrait (%)</label><input id="param-autres-retrait" type="number" step="0.01" min="0" max="100" /></div>
+          <div class="param-row"><label>Commission dépôt (%)</label><input id="param-autres-depot" type="number" step="0.01" min="0" max="100" /></div>
+          <div class="param-row"><label>Montant minimum (XAF)</label><input id="param-autres-min" type="number" step="50" min="0" /></div>
+        </div>
+        <div class="param-group">
+          <h3>🎯 Objectifs & Plafonds</h3>
+          <div class="param-row"><label>Profit cible (XAF)</label><input id="param-profit-cible" type="number" step="1000" min="0" /></div>
+          <div class="param-row"><label>Plafond journalier (XAF)</label><input id="param-plafond-journalier" type="number" step="100" min="0" /></div>
+          <div class="param-row"><label>Plafond hebdomadaire (XAF)</label><input id="param-plafond-hebdo" type="number" step="100" min="0" /></div>
+          <div class="param-row"><label>Plafond mensuel (XAF)</label><input id="param-plafond-mensuel" type="number" step="1000" min="0" /></div>
+        </div>
+      </div>
+      <div class="controls">
+        <div class="button-row">
+          <button class="btn-save" onclick="sauvegarderParametres()">💾 Sauvegarder tous les paramètres</button>
+        </div>
+      </div>
+    </section>
+  </main>
+  <!-- =========================
+       JAVASCRIPT (logic + DB)
+       ========================= -->
+  <script>
+    /*****************************************************************************
+     * kimiaSuite – version finale avec restrictions strictes et hiérarchisées
+     *****************************************************************************/
+    /* ===== STATE & DB ===== */
+    const DB_NAME = 'kimiaSuiteDB';
+    const DB_VERSION = 3;
+    const STORE_TRANSACTIONS = 'transactions';
+    const STORE_PARAMETRES = 'parametres';
+    let db = null;
+    let historique = { extra: [], simple: [], autres: [] };
+    let parametres = {
+      nomApp: "kimiaSuite",
+      extraGrille: [
+        { min: 250, max: 11000, frais: 50 },
+        { min: 11001, max: 15000, frais: 150 },
+        { min: 15001, max: 70000, frais: 175 },
+        { min: 70001, max: 100000, frais: 200 },
+        { min: 100001, max: 200000, frais: 250 },
+        { min: 200001, max: 250000, frais: 300 },
+        { min: 250001, max: 750000, frais: 400 },
+        { min: 750001, max: 1000000, frais: 500 }
+      ],
+      extraFormule: "Frais client - Commission",
+      extraMin: 250,
+      extraCommissionRetrait: 0,
+      extraCommissionDepot: 0,
+      simpleFrais: 1.7523,
+      simpleCommission: 0.1677,
+      simpleMin: 250,
+      autresFraisClientPercent: 3.5,
+      autresRetrait: 0.8,
+      autresDepot: 0.4,
+      autresMin: 250,
+      profitCible: 5000,
+      plafondJournalier: 25500,
+      plafondHebdo: 124500,
+      plafondMensuel: 367500,
+      motDePasse: null,
+      theme: 'light'
+    };
+    /* ===== UTIL ===== */
+    function formatNumber(x){
+      if (x === null || x === undefined || Number.isNaN(Number(x))) return '0';
+      return Number(x).toLocaleString('fr-FR');
+    }
+    function showToast(message, type='success'){
+      const c = document.getElementById('toastContainer');
+      const d = document.createElement('div');
+      d.className = 'toast ' + (type || '');
+      d.innerText = message;
+      c.appendChild(d);
+      setTimeout(()=>d.classList.add('show'), 60);
+      setTimeout(()=>{ d.classList.remove('show'); setTimeout(()=>d.remove(), 350); }, 3000);
+    }
+    /* ===== INDEXEDDB (contrôleur) ===== */
+    function openDB() {
+      return new Promise((resolve, reject) => {
+        const req = indexedDB.open(DB_NAME, DB_VERSION);
+        req.onupgradeneeded = function(e) {
+          const _db = e.target.result;
+          if (! _db.objectStoreNames.contains(STORE_TRANSACTIONS)) {
+            _db.createObjectStore(STORE_TRANSACTIONS, { keyPath: 'id', autoIncrement: true });
+          }
+          if (! _db.objectStoreNames.contains(STORE_PARAMETRES)) {
+            _db.createObjectStore(STORE_PARAMETRES, { keyPath: 'id' });
+          }
+        };
+        req.onsuccess = function(e) {
+          db = e.target.result;
+          Promise.all([chargerHistorique(), chargerParametres()]).then(()=> {
+            appliquerParametres();
+            majHistorique('extra'); majHistorique('simple'); majHistorique('autres');
+            resolve(db);
+          }).catch(reject);
+        };
+        req.onerror = function(e) { reject(e); };
+      });
+    }
+    function ajouterTransaction(transaction) {
+      return new Promise((resolve, reject) => {
+        if (!db) {
+          const pseudoId = Date.now();
+          transaction.id = pseudoId;
+          resolve(pseudoId);
+          return;
+        }
+        const tx = db.transaction(STORE_TRANSACTIONS, 'readwrite');
+        const store = tx.objectStore(STORE_TRANSACTIONS);
+        const r = store.add(transaction);
+        r.onsuccess = () => resolve(r.result);
+        r.onerror = () => reject(r.error);
+      });
+    }
+    function chargerHistorique() {
+      return new Promise((resolve, reject) => {
+        if (!db) { resolve(); return; }
+        const tx = db.transaction(STORE_TRANSACTIONS, 'readonly');
+        const store = tx.objectStore(STORE_TRANSACTIONS);
+        const r = store.getAll();
+        r.onsuccess = () => {
+          const data = r.result || [];
+          historique.extra = data.filter(it => it.type === 'extra');
+          historique.simple = data.filter(it => it.type === 'simple');
+          historique.autres = data.filter(it => it.type === 'autres');
+          resolve();
+        };
+        r.onerror = () => reject(r.error);
+      });
+    }
+    function supprimerTransaction(id) {
+      return new Promise((resolve, reject) => {
+        if (!db) { resolve(); return; }
+        const tx = db.transaction(STORE_TRANSACTIONS, 'readwrite');
+        const store = tx.objectStore(STORE_TRANSACTIONS);
+        const r = store.delete(id);
+        r.onsuccess = resolve;
+        r.onerror = reject;
+      });
+    }
+    function viderHistoriqueParType(type) {
+      return new Promise((resolve, reject) => {
+        if (!db) {
+          historique[type] = [];
+          resolve();
+          return;
+        }
+        const tx = db.transaction(STORE_TRANSACTIONS, 'readwrite');
+        const store = tx.objectStore(STORE_TRANSACTIONS);
+        const cursorReq = store.openCursor();
+        cursorReq.onsuccess = function(e) {
+          const cursor = e.target.result;
+          if (cursor) {
+            if (cursor.value.type === type) cursor.delete();
+            cursor.continue();
+          } else resolve();
+        };
+        cursorReq.onerror = reject;
+      });
+    }
+    function sauvegarderParametresDB(params) {
+      return new Promise((resolve, reject) => {
+        if (!db) { resolve(); return; }
+        const tx = db.transaction(STORE_PARAMETRES, 'readwrite');
+        const store = tx.objectStore(STORE_PARAMETRES);
+        const r = store.put({ id: 'user', ...params });
+        r.onsuccess = resolve;
+        r.onerror = reject;
+      });
+    }
+    function chargerParametres() {
+      return new Promise((resolve, reject) => {
+        if (!db) { resolve(); return; }
+        const tx = db.transaction(STORE_PARAMETRES, 'readonly');
+        const store = tx.objectStore(STORE_PARAMETRES);
+        const r = store.get('user');
+        r.onsuccess = function() {
+          if (r.result) {
+            Object.assign(parametres, r.result);
+          }
+          resolve();
+        };
+        r.onerror = reject;
+      });
+    }
+    /* ====== CALCULS ====== */
+    function trouverFraisExtra(montant) {
+      if (!Array.isArray(parametres.extraGrille) || parametres.extraGrille.length === 0) return 0;
+      for (const t of parametres.extraGrille) {
+        const min = Number(t.min), max = Number(t.max);
+        if (!isNaN(min) && !isNaN(max)) {
+          if (montant >= min && montant <= max) return Number(t.frais) || 0;
+        }
+      }
+      let best = parametres.extraGrille.slice().sort((a,b)=> (Number(a.max)||0) - (Number(b.max)||0)).pop();
+      return best ? Number(best.frais) || 0 : 0;
+    }
+    // Début semaine = lundi 00:00
+    function calculerTotauxPeriodes() {
+      const now = new Date();
+      const debutJour = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      const debutSemaine = new Date(now);
+      const day = now.getDay();
+      const diff = (day === 0 ? -6 : 1 - day);
+      debutSemaine.setDate(now.getDate() + diff);
+      debutSemaine.setHours(0,0,0,0);
+      const debutMois = new Date(now.getFullYear(), now.getMonth(), 1);
+      let totalJour = 0, totalSemaine = 0, totalMois = 0;
+      Object.values(historique).flat().forEach(t => {
+        const d = new Date(t.date);
+        const benef = Number(t.benefice) || 0;
+        if (d >= debutJour) totalJour += benef;
+        if (d >= debutSemaine) totalSemaine += benef;
+        if (d >= debutMois) totalMois += benef;
+      });
+      return { totalJour, totalSemaine, totalMois };
+    }
+    // ---------- EXTRA ----------
+    function calculerExtra() {
+      const montant = parseFloat(document.getElementById('montant-extra').value);
+      const isRetrait = document.getElementById('operation-retrait').checked;
+      const isDepot = document.getElementById('operation-depot').checked;
+      if (isNaN(montant) || montant < parametres.extraMin) {
+        showToast(`⚠️ Montant minimum : ${formatNumber(parametres.extraMin)} XAF`, 'error');
+        return;
+      }
+      if (!isRetrait && !isDepot) {
+        showToast(`⚠️ Veuillez sélectionner au moins une opération (Retrait ou Dépôt).`, 'error');
+        return;
+      }
+      const fraisClient = trouverFraisExtra(montant);
+      let transactionsToSave = [];
+      // --- TRAITEMENT DU RETRAIT ---
+      if (isRetrait) {
+        const commission = 0; // <-- Commission client forcée à 0;
+        const totalClient = montant + (montant * 0.035);
+        const benefice = totalClient - montant - commission - fraisClient;
+        // ✅ Vérification 1 : Bénéfice non négatif
+        if (benefice < 0) {
+          showToast(`⛔ Opération impossible : le bénéfice net ne peut pas être négatif.`, 'error');
+          return;
+        }
+        const transactionRetrait = {
+          type: 'extra',
+          montant,
+          fraisClient,
+          commission,
+          totalClient,
+          benefice,
+          operation: 'retrait',
+          date: new Date().toISOString()
+        };
+        transactionsToSave.push(transactionRetrait);
+      }
+      // --- TRAITEMENT DU DÉPÔT ---
+      if (isDepot) {
+        const commission = 0; // <-- Commission client forcée à 0
+        const totalClient = montant + fraisClient;
+        const benefice = -(fraisClient + commission);
+        const transactionDepot = {
+          type: 'extra',
+          montant,
+          fraisClient,
+          commission,
+          totalClient,
+          benefice,
+          operation: 'depot',
+          date: new Date().toISOString()
+        };
+        transactionsToSave.push(transactionDepot);
+      }
+      // --- VÉRIFICATION DES PLAFONDS ---
+      const { totalJour, totalSemaine, totalMois } = calculerTotauxPeriodes();
+      let beneficeTotalCumule = 0;
+      for (let tx of transactionsToSave) {
+        beneficeTotalCumule += tx.benefice;
+      }
+      // ✅ Vérification 2 : Plafonds journalier, hebdo, mensuel (STRICT >=)
+      let plafondsAtteints = [];
+      if (totalJour + beneficeTotalCumule >= Number(parametres.plafondJournalier)) {
+        plafondsAtteints.push(`⛔ Plafond journalier atteint (${formatNumber(parametres.plafondJournalier)} XAF). Aucune nouvelle transaction n'est autorisée.`);
+      }
+      if (totalSemaine + beneficeTotalCumule >= Number(parametres.plafondHebdo)) {
+        plafondsAtteints.push(`⛔ Plafond hebdomadaire atteint (${formatNumber(parametres.plafondHebdo)} XAF). Aucune nouvelle transaction n'est autorisée.`);
+      }
+      if (totalMois + beneficeTotalCumule >= Number(parametres.plafondMensuel)) {
+        plafondsAtteints.push(`⛔ Plafond mensuel atteint (${formatNumber(parametres.plafondMensuel)} XAF). Aucune nouvelle transaction n'est autorisée.`);
+      }
+      // Afficher les messages d'erreur un par un, avec un délai de 2 secondes
+      if (plafondsAtteints.length > 0) {
+        let index = 0;
+        const afficherErreurSuivante = () => {
+          if (index < plafondsAtteints.length) {
+            showToast(plafondsAtteints[index], 'error');
+            index++;
+            if (index < plafondsAtteints.length) {
+              setTimeout(afficherErreurSuivante, 2000); // 2 secondes entre chaque message
+            }
+          }
+        };
+        afficherErreurSuivante();
+        return;
+      }
+      // ✅ Vérification 3 : Le bénéfice cumulé ne doit pas rendre le total journalier négatif
+      if (totalJour + beneficeTotalCumule < 0) {
+        showToast(`⛔ Opération impossible : cette transaction rendrait votre bénéfice journalier négatif.`, 'error');
+        return;
+      }
+      // --- ENREGISTREMENT ---
+      let promises = [];
+      for (let tx of transactionsToSave) {
+        promises.push(
+          ajouterTransaction(tx).then(id => {
+            tx.id = id;
+            historique.extra.push(tx);
+          })
+        );
+      }
+      Promise.all(promises).then(() => {
+        majHistorique('extra');
+        verifierObjectifs(); // <-- Affiche le message de félicitation si l'objectif est atteint
+        showToast('✅ Opération(s) enregistrée(s) !');
+      }).catch(err => {
+        console.error(err);
+        showToast('❌ Erreur lors de l\'enregistrement.', 'error');
+      });
+    }
+    // ---------- SIMPLE ----------
+    function calculerSimple() {
+      const montant = parseFloat(document.getElementById('montant-simple').value);
+      if (isNaN(montant) || montant < parametres.simpleMin) {
+        showToast(`⚠️ Montant minimum : ${formatNumber(parametres.simpleMin)} XAF`, 'error');
+        return;
+      }
+      const frais = montant * (parametres.simpleFrais / 100);
+      const commissionAgent = montant * (parametres.simpleCommission / 100);
+      const totalClient = montant + (montant * 0.035);
+      const benefice = totalClient - montant - frais;
+      const { totalJour, totalSemaine, totalMois } = calculerTotauxPeriodes();
+      // ✅ Vérification des Plafonds (STRICT >=)
+      let plafondsAtteints = [];
+      if (totalJour + benefice >= Number(parametres.plafondJournalier)) {
+        plafondsAtteints.push(`⛔ Plafond journalier atteint (${formatNumber(parametres.plafondJournalier)} XAF). Aucune nouvelle transaction n'est autorisée.`);
+      }
+      if (totalSemaine + benefice >= Number(parametres.plafondHebdo)) {
+        plafondsAtteints.push(`⛔ Plafond hebdomadaire atteint (${formatNumber(parametres.plafondHebdo)} XAF). Aucune nouvelle transaction n'est autorisée.`);
+      }
+      if (totalMois + benefice >= Number(parametres.plafondMensuel)) {
+        plafondsAtteints.push(`⛔ Plafond mensuel atteint (${formatNumber(parametres.plafondMensuel)} XAF). Aucune nouvelle transaction n'est autorisée.`);
+      }
+      // Afficher les messages d'erreur un par un
+      if (plafondsAtteints.length > 0) {
+        let index = 0;
+        const afficherErreurSuivante = () => {
+          if (index < plafondsAtteints.length) {
+            showToast(plafondsAtteints[index], 'error');
+            index++;
+            if (index < plafondsAtteints.length) {
+              setTimeout(afficherErreurSuivante, 2000);
+            }
+          }
+        };
+        afficherErreurSuivante();
+        return;
+      }
+      // ✅ Vérification : Le bénéfice ne doit pas rendre le total journalier négatif
+      if (totalJour + benefice < 0) {
+        showToast(`⛔ Opération impossible : cette transaction rendrait votre bénéfice journalier négatif.`, 'error');
+        return;
+      }
+      const transaction = { type:'simple', montant, fraisClient: frais, commission: commissionAgent, totalClient, benefice, date: new Date().toISOString() };
+      ajouterTransaction(transaction).then(id => {
+        transaction.id = id;
+        historique.simple.push(transaction);
+        majHistorique('simple');
+        verifierObjectifs(); // <-- Affiche le message de félicitation
+        showToast('✅ Transaction enregistrée !');
+      }).catch(err => {
+        console.error(err);
+        showToast('❌ Erreur lors de l\'enregistrement.', 'error');
+      });
+    }
+    // ---------- AUTRES ----------
+    function calculerAutres() {
+      const montant = parseFloat(document.getElementById('montant-autres').value);
+      if (isNaN(montant) || montant < parametres.autresMin) {
+        showToast(`⚠️ Montant minimum : ${formatNumber(parametres.autresMin)} XAF`, 'error');
+        return;
+      }
+      const fraisClient = montant * (parametres.autresFraisClientPercent / 100);
+      const commissionRetrait = montant * (parametres.autresRetrait / 100);
+      const commissionDepot = montant * (parametres.autresDepot / 100);
+      const retraitCoche = document.getElementById('retrait-effectue')?.checked || false;
+      const depotCoche = document.getElementById('depot-effectue')?.checked || false;
+      if (!retraitCoche && !depotCoche) {
+        showToast(`⚠️ Veuillez cocher au moins "Retrait" ou "Dépôt" pour enregistrer une transaction.`, 'error');
+        return;
+      }
+      let benefice = 0;
+      if (retraitCoche) benefice += commissionRetrait;
+      if (depotCoche) benefice += commissionDepot;
+      const { totalJour, totalSemaine, totalMois } = calculerTotauxPeriodes();
+      // ✅ Vérification des Plafonds (STRICT >=)
+      let plafondsAtteints = [];
+      if (totalJour + benefice >= Number(parametres.plafondJournalier)) {
+        plafondsAtteints.push(`⛔ Plafond journalier atteint (${formatNumber(parametres.plafondJournalier)} XAF). Aucune nouvelle transaction n'est autorisée.`);
+      }
+      if (totalSemaine + benefice >= Number(parametres.plafondHebdo)) {
+        plafondsAtteints.push(`⛔ Plafond hebdomadaire atteint (${formatNumber(parametres.plafondHebdo)} XAF). Aucune nouvelle transaction n'est autorisée.`);
+      }
+      if (totalMois + benefice >= Number(parametres.plafondMensuel)) {
+        plafondsAtteints.push(`⛔ Plafond mensuel atteint (${formatNumber(parametres.plafondMensuel)} XAF). Aucune nouvelle transaction n'est autorisée.`);
+      }
+      // Afficher les messages d'erreur un par un
+      if (plafondsAtteints.length > 0) {
+        let index = 0;
+        const afficherErreurSuivante = () => {
+          if (index < plafondsAtteints.length) {
+            showToast(plafondsAtteints[index], 'error');
+            index++;
+            if (index < plafondsAtteints.length) {
+              setTimeout(afficherErreurSuivante, 2000);
+            }
+          }
+        };
+        afficherErreurSuivante();
+        return;
+      }
+      // ✅ Vérification : Le bénéfice ne doit pas rendre le total journalier négatif
+      if (totalJour + benefice < 0) {
+        showToast(`⛔ Opération impossible : cette transaction rendrait votre bénéfice journalier négatif.`, 'error');
+        return;
+      }
+      const totalClient = montant + fraisClient;
+      const transaction = {
+        type: 'autres',
+        montant,
+        fraisClient,
+        commissionRetrait: retraitCoche ? commissionRetrait : 0,
+        commissionDepot: depotCoche ? commissionDepot : 0,
+        totalClient,
+        benefice,
+        retraitEffectue: retraitCoche,
+        depotEffectue: depotCoche,
+        date: new Date().toISOString()
+      };
+      ajouterTransaction(transaction).then(id => {
+        transaction.id = id;
+        historique.autres.push(transaction);
+        majHistorique('autres');
+        verifierObjectifs(); // <-- Affiche le message de félicitation
+        showToast('✅ Transaction enregistrée !');
+      }).catch(err => {
+        console.error(err);
+        showToast('❌ Erreur lors de l\'enregistrement.', 'error');
+      });
+    }
+    /* ===== HISTORIQUE & AFFICHAGE ===== */
+    function majHistorique(type) {
+      const tbody = document.getElementById('historique-' + type);
+      if (!tbody) return;
+      tbody.innerHTML = '';
+      const now = new Date();
+      const debutJour = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      const debutSemaine = new Date(now);
+      const day = now.getDay();
+      const diff = (day === 0 ? -6 : 1 - day);
+      debutSemaine.setDate(now.getDate() + diff);
+      debutSemaine.setHours(0,0,0,0);
+      const debutMois = new Date(now.getFullYear(), now.getMonth(), 1);
+      let totalJour = 0, totalSemaine = 0, totalMois = 0;
+      Object.values(historique).flat().forEach(t => {
+        const d = new Date(t.date);
+        const benef = Number(t.benefice) || 0;
+        if (d >= debutJour) totalJour += benef;
+        if (d >= debutSemaine) totalSemaine += benef;
+        if (d >= debutMois) totalMois += benef;
+      });
+      const statsDiv = document.getElementById('objectifs-stats');
+      if (statsDiv) {
+        statsDiv.innerHTML = `💰 Jour: ${formatNumber(totalJour)} XAF | 📅 Hebdo: ${formatNumber(totalSemaine)} XAF | 📆 Mois: ${formatNumber(totalMois)} XAF`;
+      }
+      const filterVal = document.getElementById('filter-montant-' + type)?.value?.toLowerCase() || '';
+      const items = (historique[type] || [])
+        .filter(t => String(t.montant).toLowerCase().includes(filterVal));
+      let totalBenef = 0;
+      items.forEach((l, idx) => {
+        totalBenef += Number(l.benefice || 0);
+        const tr = document.createElement('tr');
+        const originalIndex = historique[type].indexOf(l);
+        if (type === 'extra') {
+          let labelOperation = '';
+          if (l.operation === 'depot') {
+            labelOperation = `<br><small style="color:var(--muted); font-size:0.85em">Dépôt</small>`;
+          } else if (l.operation === 'retrait') {
+            labelOperation = `<br><small style="color:var(--muted); font-size:0.85em">Retrait</small>`;
+          }
+          tr.innerHTML = `<td>${formatNumber(l.montant)}</td>
+                          <td>${formatNumber(l.fraisClient)}</td>
+                          <td>${formatNumber(l.commission)}</td>
+                          <td>${formatNumber(l.totalClient)}</td>
+                          <td style="${l.benefice < 0 ? 'color: var(--danger);' : ''}">${formatNumber(l.benefice)}${labelOperation}</td>
+                          <td>${new Date(l.date).toLocaleString()}</td>
+                          <td><button onclick="supprimerHistorique('${type}', ${originalIndex})">Supprimer</button></td>`;
+        } else if (type === 'simple') {
+          tr.innerHTML = `<td>${formatNumber(l.montant)}</td>
+                          <td>${formatNumber(l.fraisClient)}</td>
+                          <td>${formatNumber(l.commission)}</td>
+                          <td>${formatNumber(l.totalClient)}</td>
+                          <td>${formatNumber(l.benefice)}</td>
+                          <td>${new Date(l.date).toLocaleString()}</td>
+                          <td><button onclick="supprimerHistorique('${type}', ${originalIndex})">Supprimer</button></td>`;
+        } else {
+          const ops = (l.retraitEffectue && l.depotEffectue) ? '🔁 Retrait + Dépôt' : (l.retraitEffectue ? '📤 Retrait seul' : (l.depotEffectue ? '📥 Dépôt seul' : '—'));
+          tr.innerHTML = `<td>${formatNumber(l.montant)}</td>
+                          <td>${formatNumber(l.commissionRetrait)}</td>
+                          <td>${formatNumber(l.commissionDepot)}</td>
+                          <td>${formatNumber(l.totalClient)}</td>
+                          <td>${formatNumber(l.benefice)}</td>
+                          <td>${new Date(l.date).toLocaleString()}<br><small style="color:var(--muted);font-size:0.85em">${ops}</small></td>
+                          <td><button onclick="supprimerHistorique('${type}', ${originalIndex})">Supprimer</button></td>`;
+        }
+        tbody.appendChild(tr);
+      });
+      const foot = document.getElementById('totaux-' + type);
+      if (foot) {
+        foot.innerHTML = `<tr><td colspan="4"><strong>Total général</strong></td><td><strong>${formatNumber(totalBenef)}</strong></td><td colspan="2"></td></tr>`;
+      }
+    }
+    function supprimerHistorique(type, index) {
+      if (!confirm('Supprimer cette transaction ?')) return;
+      const entry = historique[type][index];
+      if (!entry) {
+        showToast('Entrée introuvable.', 'error');
+        return;
+      }
+      if (!entry.id || typeof entry.id === 'string' && entry.id.startsWith('tmp-')) {
+        historique[type].splice(index,1);
+        majHistorique(type);
+        showToast('🗑️ Supprimé (local).');
+        return;
+      }
+      supprimerTransaction(entry.id).then(() => {
+        historique[type].splice(index,1);
+        majHistorique(type);
+        // La suppression peut "libérer" un plafond, l'utilisateur peut maintenant enregistrer de nouvelles transactions.
+        showToast('🗑️ Supprimé.');
+      }).catch(err => {
+        console.error(err);
+        showToast('❌ Erreur lors de la suppression.', 'error');
+      });
+    }
+    function reinitHistorique(type) {
+      if (!confirm(`Réinitialiser tout l'historique ${type.toUpperCase()} ?`)) return;
+      viderHistoriqueParType(type).then(() => {
+        historique[type] = [];
+        majHistorique(type);
+        // La réinitialisation "libère" tous les plafonds.
+        showToast('✅ Réinitialisé.');
+      }).catch(err => {
+        console.error(err);
+        showToast('❌ Erreur lors de la réinitialisation.', 'error');
+      });
+    }
+    /* ===== EXPORTS ===== */
+    function exporterExcel(type) {
+      if (!historique[type] || historique[type].length === 0) {
+        showToast('Aucune donnée à exporter.', 'error');
+        return;
+      }
+      let headers, ws_data;
+      if (type === 'extra') {
+        headers = ['Montant (XAF)', 'Frais client (XAF)', 'Commission (XAF)', 'Total client (XAF)', 'Bénéfice agent (XAF)', 'Date'];
+        ws_data = [headers, ...historique[type].map(l => [l.montant, l.fraisClient, l.commission, l.totalClient, l.benefice, new Date(l.date).toLocaleString()])];
+      } else if (type === 'simple') {
+        headers = ['Montant (XAF)', 'Frais client (XAF)', 'Commission agent (XAF)', 'Total client (XAF)', 'Bénéfice agent (XAF)', 'Date'];
+        ws_data = [headers, ...historique[type].map(l => [l.montant, l.fraisClient, l.commission, l.totalClient, l.benefice, new Date(l.date).toLocaleString()])];
+      } else {
+        headers = ['Montant (XAF)', 'Commission retrait (XAF)', 'Commission dépôt (XAF)', 'Total client (XAF)', 'Bénéfice agent (XAF)', 'Date'];
+        ws_data = [headers, ...historique[type].map(l => [l.montant, l.commissionRetrait, l.commissionDepot, l.totalClient, l.benefice, new Date(l.date).toLocaleString()])];
+      }
+      const wb = XLSX.utils.book_new();
+      const ws = XLSX.utils.aoa_to_sheet(ws_data);
+      XLSX.utils.book_append_sheet(wb, ws, type.toUpperCase());
+      ws['!cols'] = headers.map(h => ({ wch: Math.max(h.length, 15) }));
+      const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+      const blob = new Blob([wbout], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `kimiaSuite_${type}_${new Date().toISOString().slice(0,10)}.xlsx`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      showToast('📄 Excel exporté.');
+    }
+    function exporterPDF(type) {
+      if (!historique[type] || historique[type].length === 0) {
+        showToast('Aucune donnée à exporter.', 'error');
+        return;
+      }
+      const doc = new jsPDF();
+      doc.setFontSize(14);
+      doc.text(`Historique ${type.toUpperCase()}`, 14, 16);
+      let head, body;
+      if (type === 'extra') {
+        head = [['Montant','Frais client','Commission','Total client','Bénéfice','Date']];
+        body = historique[type].map(l => [formatNumber(l.montant), formatNumber(l.fraisClient), formatNumber(l.commission), formatNumber(l.totalClient), formatNumber(l.benefice), new Date(l.date).toLocaleString()]);
+      } else if (type === 'simple') {
+        head = [['Montant','Frais client','Commission agent','Total client','Bénéfice agent','Date']];
+        body = historique[type].map(l => [formatNumber(l.montant), formatNumber(l.fraisClient), formatNumber(l.commission), formatNumber(l.totalClient), formatNumber(l.benefice), new Date(l.date).toLocaleString()]);
+      } else {
+        head = [['Montant','Comm. retrait','Comm. dépôt','Total client','Bénéfice agent','Date']];
+        body = historique[type].map(l => [formatNumber(l.montant), formatNumber(l.commissionRetrait), formatNumber(l.commissionDepot), formatNumber(l.totalClient), formatNumber(l.benefice), new Date(l.date).toLocaleString()]);
+      }
+      doc.autoTable({
+        head: head,
+        body: body,
+        startY: 24,
+        styles: { fontSize: 8 },
+        headStyles: { fillColor: [37,99,235] }
+      });
+      const pdfBlob = doc.output('blob');
+      const url = URL.createObjectURL(pdfBlob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `kimiaSuite_${type}_${new Date().toISOString().slice(0,10)}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      showToast('📄 PDF exporté.');
+    }
+    /* ===== PARAMS UI ===== */
+    function appliquerParametres(){
+      document.getElementById('param-nom-app').value = parametres.nomApp || '';
+      document.getElementById('param-extra-formule').value = parametres.extraFormule || '';
+      document.getElementById('param-extra-min').value = parametres.extraMin || 250;
+      document.getElementById('param-extra-commission-retrait').value = parametres.extraCommissionRetrait || 0.25;
+      document.getElementById('param-extra-commission-depot').value = parametres.extraCommissionDepot || 0.25;
+      document.getElementById('param-simple-frais').value = parametres.simpleFrais || 2.0;
+      document.getElementById('param-simple-commission').value = parametres.simpleCommission || 1.8962;
+      document.getElementById('param-simple-min').value = parametres.simpleMin || 250;
+      document.getElementById('param-autres-frais-client').value = parametres.autresFraisClientPercent || 3.5;
+      document.getElementById('param-autres-retrait').value = parametres.autresRetrait || 0.8;
+      document.getElementById('param-autres-depot').value = parametres.autresDepot || 0.4;
+      document.getElementById('param-autres-min').value = parametres.autresMin || 250;
+      document.getElementById('param-profit-cible').value = parametres.profitCible || 100000;
+      document.getElementById('param-plafond-journalier').value = parametres.plafondJournalier || 200000;
+      document.getElementById('param-plafond-hebdo').value = parametres.plafondHebdo || 700000;
+      document.getElementById('param-plafond-mensuel').value = parametres.plafondMensuel || 2000000;
+      document.getElementById('appTitle').innerText = parametres.nomApp || 'kimiaSuite';
+      renderExtraGrilleUI();
+      renderTarifsInline();
+    }
+    function sauvegarderParametres(){
+      parametres.nomApp = document.getElementById('param-nom-app').value || parametres.nomApp;
+      parametres.extraFormule = document.getElementById('param-extra-formule').value || parametres.extraFormule;
+      parametres.extraMin = Number(document.getElementById('param-extra-min').value) || parametres.extraMin;
+      parametres.extraCommissionRetrait = Number(document.getElementById('param-extra-commission-retrait').value) || 0.25;
+      parametres.extraCommissionDepot = Number(document.getElementById('param-extra-commission-depot').value) || 0.25;
+      parametres.simpleFrais = Number(document.getElementById('param-simple-frais').value) || parametres.simpleFrais;
+      parametres.simpleCommission = Number(document.getElementById('param-simple-commission').value) || parametres.simpleCommission;
+      parametres.simpleMin = Number(document.getElementById('param-simple-min').value) || parametres.simpleMin;
+      parametres.autresFraisClientPercent = Number(document.getElementById('param-autres-frais-client').value) || parametres.autresFraisClientPercent;
+      parametres.autresRetrait = Number(document.getElementById('param-autres-retrait').value) || parametres.autresRetrait;
+      parametres.autresDepot = Number(document.getElementById('param-autres-depot').value) || parametres.autresDepot;
+      parametres.autresMin = Number(document.getElementById('param-autres-min').value) || parametres.autresMin;
+      parametres.profitCible = Number(document.getElementById('param-profit-cible').value) || parametres.profitCible;
+      parametres.plafondJournalier = Number(document.getElementById('param-plafond-journalier').value) || parametres.plafondJournalier;
+      parametres.plafondHebdo = Number(document.getElementById('param-plafond-hebdo').value) || parametres.plafondHebdo;
+      parametres.plafondMensuel = Number(document.getElementById('param-plafond-mensuel').value) || parametres.plafondMensuel;
+      const container = document.getElementById('param-extra-grille-container');
+      const rows = Array.from(container.querySelectorAll('.extra-grille-row'));
+      if (rows.length > 0) {
+        const newGrille = rows.map(row => {
+          const min = Number(row.querySelector('.grille-min').value) || 0;
+          const max = Number(row.querySelector('.grille-max').value) || 0;
+          const frais = Number(row.querySelector('.grille-frais').value) || 0;
+          return { min, max, frais };
+        }).filter(r => r.min > 0 && r.max > 0);
+        if (newGrille.length) parametres.extraGrille = newGrille;
+      }
+      sauvegarderParametresDB(parametres).then(()=>{
+        appliquerParametres();
+        showToast('💾 Paramètres sauvegardés.');
+      }).catch(err=>{
+        console.error(err);
+        showToast('❌ Erreur sauvegarde', 'error');
+      });
+    }
+    function renderExtraGrilleUI() {
+      const container = document.getElementById('param-extra-grille-container');
+      container.innerHTML = '';
+      (parametres.extraGrille || []).forEach((t, idx) => {
+        const row = document.createElement('div');
+        row.className = 'extra-grille-row';
+        row.innerHTML = `
+          <input class="grille-min" type="number" value="${t.min}" placeholder="min" />
+          <input class="grille-max" type="number" value="${t.max}" placeholder="max" />
+          <input class="grille-frais" type="number" value="${t.frais}" placeholder="frais (XAF)" />
+          <button class="remove-btn" data-idx="${idx}" title="Supprimer">🗑️</button>`;
+        container.appendChild(row);
+      });
+      container.querySelectorAll('.remove-btn').forEach(btn=>{
+        btn.addEventListener('click', (e)=> {
+          const i = Number(e.currentTarget.dataset.idx);
+          parametres.extraGrille.splice(i,1);
+          renderExtraGrilleUI();
+          renderTarifsInline();
+        });
+      });
+    }
+    function ajouterTrancheExtra(){
+      parametres.extraGrille.push({ min:0, max:0, frais:0 });
+      renderExtraGrilleUI();
+      renderTarifsInline();
+    }
+    function reinitialiserGrilleParDefaut(){
+      parametres.extraGrille = [
+        { min: 250, max: 11000, frais: 50 },
+        { min: 11001, max: 15000, frais: 150 },
+        { min: 15001, max: 70000, frais: 175 },
+        { min: 70001, max: 100000, frais: 200 },
+        { min: 100001, max: 200000, frais: 250 },
+        { min: 200001, max: 250000, frais: 300 },
+        { min: 250001, max: 750000, frais: 400 },
+        { min: 750001, max: 1000000, frais: 500 }
+      ];
+      renderExtraGrilleUI();
+      renderTarifsInline();
+      showToast('♻️ Grille réinitialisée');
+    }
+    function renderTarifsInline(){
+      const container = document.getElementById('tarifs-inline');
+      if (!container) return;
+      if (!Array.isArray(parametres.extraGrille) || parametres.extraGrille.length===0) {
+        container.innerHTML = '<div style="color:var(--muted)">Aucune tranche définie.</div>';
+        return;
+      }
+      let html = '<div style="display:flex;flex-direction:column;gap:0.4rem">';
+      parametres.extraGrille.forEach((t, i) => {
+        html += `<div style="display:flex;justify-content:space-between;gap:0.6rem;padding:0.45rem;border-radius:6px;background:var(--card);border:1px solid var(--border)">
+          <div><strong>Tranche ${i+1}</strong><br><small style="color:var(--muted)">min: ${formatNumber(t.min)} — max: ${formatNumber(t.max)}</small></div>
+          <div style="display:flex;flex-direction:column;align-items:flex-end"><span style="font-weight:800">${formatNumber(t.frais)} XAF</span><small style="color:var(--muted)">frais</small></div>
+        </div>`;
+      });
+      html += '</div>';
+      container.innerHTML = html;
+    }
+    /* ===== PREVIEWS (debounced) ===== */
+    let previewTimer;
+    function calculerExtraPreview(){
+      clearTimeout(previewTimer);
+      previewTimer = setTimeout(()=>{
+        const montant = parseFloat(document.getElementById('montant-extra').value);
+        const isRetrait = document.getElementById('operation-retrait')?.checked || false;
+        const isDepot = document.getElementById('operation-depot')?.checked || false;
+        const box = document.getElementById('resultat-extra');
+        if (isNaN(montant) || montant < parametres.extraMin) {
+          box.innerHTML = `<span style="color:var(--danger)">⚠️ Entrez un montant ≥ ${formatNumber(parametres.extraMin)} XAF</span>`;
+          return;
+        }
+        if (!isRetrait && !isDepot) {
+          box.innerHTML = `<span style="color:var(--danger)">⚠️ Sélectionnez Retrait ou Dépôt</span>`;
+          return;
+        }
+        const fraisClient = trouverFraisExtra(montant);
+        let html = '';
+        if (isRetrait) {
+          const commission = 0; // <-- Commission client forcée à 0
+          const total = montant + (montant * 0.035);
+          const benefice = total - montant - commission - fraisClient;
+          html += `<div style="margin-bottom: 0.5rem; padding-bottom: 0.5rem; border-bottom: 1px dashed var(--border);">
+                    <strong>Opération : Retrait</strong><br>
+                    Montant: <strong>${formatNumber(montant)} XAF</strong><br>
+                    Frais transaction: <strong>${formatNumber(fraisClient)} XAF</strong><br>
+                    Commission client: <strong>${formatNumber(commission)} XAF</strong><br>
+                    Total transaction: <strong>${formatNumber(total)} XAF</strong><br>
+                    Bénéfice net agent: <strong style="color:var(--success)">${formatNumber(benefice)} XAF</strong>
+                  </div>`;
+        }
+        if (isDepot) {
+          const commission = montant * (parametres.extraCommissionDepot / 100);
+          const total = montant + fraisClient;
+          const benefice = -(fraisClient + commission);
+          html += `<div>
+                    <strong>Opération : Dépôt</strong><br>
+                    Montant déposé: <strong>${formatNumber(montant)} XAF</strong><br>
+                    Frais MTN: <strong>${formatNumber(fraisClient)} XAF</strong><br>
+                    Commission client: <strong>${formatNumber(commission)} XAF</strong><br>
+                    Total transaction: <strong>${formatNumber(total)} XAF</strong><br>
+                    Impact sur solde: <strong style="color:var(--danger)">${formatNumber(benefice)} XAF</strong>
+                  </div>`;
+        }
+        box.innerHTML = html;
+      }, 200);
+    }
+    function calculerSimplePreview(){
+      clearTimeout(previewTimer);
+      previewTimer = setTimeout(()=>{
+        const montant = parseFloat(document.getElementById('montant-simple').value);
+        const box = document.getElementById('resultat-simple');
+        if (isNaN(montant) || montant < parametres.simpleMin) {
+          box.innerHTML = `<span style="color:var(--danger)">⚠️ Entrez un montant ≥ ${formatNumber(parametres.simpleMin)} XAF</span>`;
+          return;
+        }
+        const frais = montant * (parametres.simpleFrais / 100);
+        const commissionAgent = montant * (parametres.simpleCommission / 100);
+        const total = montant * 0.035;
+        const benefice = total - frais;
+        box.innerHTML = `Montant: <strong>${formatNumber(montant)} XAF</strong><br>Frais momo: <strong>${formatNumber(total)} XAF</strong> <br>Frais momopay: <strong>${formatNumber(frais)} XAF</strong><br>Bénéfice net agent: <strong>${formatNumber(benefice)} XAF</strong>`;
+      },200);
+    }
+    function calculerAutresPreview(){
+      clearTimeout(previewTimer);
+      previewTimer = setTimeout(()=>{
+        const montant = parseFloat(document.getElementById('montant-autres').value);
+        const box = document.getElementById('resultat-autres');
+        if (isNaN(montant) || montant < parametres.autresMin) {
+          box.innerHTML = `<span style="color:var(--danger)">⚠️ Entrez un montant ≥ ${formatNumber(parametres.autresMin)} XAF</span>`;
+          return;
+        }
+        const fraisClient = montant * (parametres.autresFraisClientPercent / 100);
+        const commissionRetrait = montant * (parametres.autresRetrait / 100);
+        const commissionDepot = montant * (parametres.autresDepot / 100);
+        const retrait = document.getElementById('retrait-effectue').checked;
+        const depot = document.getElementById('depot-effectue').checked;
+        let benef = 0; if (retrait) benef += commissionRetrait; if (depot) benef += commissionDepot;
+        const total = montant + fraisClient;
+        box.innerHTML = `Montant: <strong>${formatNumber(montant)} XAF</strong><br>Frais client: <strong>${formatNumber(fraisClient)} XAF</strong><br>Bénéfice: <strong>${formatNumber(benef)} XAF</strong><br>Total client: <strong>${formatNumber(total)} XAF</strong>`;
+      },200);
+    }
+    /* ===== OBJECTIFS ===== */
+    function verifierObjectifs() {
+      const today = new Date().toISOString().split('T')[0];
+      const totalJour = historique.simple
+        .concat(historique.extra, historique.autres)
+        .filter(t => t.date && t.date.startsWith(today))
+        .reduce((acc, t) => acc + (t.benefice || 0), 0);
+      // ✅ Affiche le message de félicitation si l'objectif est atteint, SANS BLOQUER
+      if (totalJour >= parametres.profitCible) {
+        setTimeout(() => {
+          showToast(`🎯 Félicitations ! Objectif journalier de ${formatNumber(parametres.profitCible)} XAF atteint.`, 'success');
+        }, 3500);
+      }
+    }
+    /* ===== UI HELPERS ===== */
+    function afficherSection(name){
+      ['extra','simple','autres','parametres'].forEach(k=>{
+        const s = document.getElementById(k + '-section');
+        if (!s) return;
+        if (k === name) s.classList.add('active'); else s.classList.remove('active');
+      });
+    }
+    function toggleTarifs(){
+      const el = document.getElementById('tarifs-inline');
+      if (!el) return;
+      el.style.display = (el.style.display === 'none' || el.style.display === '') ? 'block' : 'none';
+      if (el.style.display === 'block') renderTarifsInline();
+    }
+    document.getElementById('themeToggle').addEventListener('click', ()=>{
+      document.documentElement.classList.toggle('dark');
+      document.getElementById('themeToggle').innerText = document.documentElement.classList.contains('dark') ? '☀️' : '🌙';
+      majHistorique('extra'); majHistorique('simple'); majHistorique('autres');
+    });
+    window.addEventListener('focus', ()=>{ 
+      chargerHistorique().then(()=>{ 
+        majHistorique('extra'); 
+        majHistorique('simple'); 
+        majHistorique('autres'); 
+      }); 
+    });
+    window.calculerExtra = calculerExtra;
+    window.calculerSimple = calculerSimple;
+    window.calculerAutres = calculerAutres;
+    window.exporterExcel = exporterExcel;
+    window.exporterPDF = exporterPDF;
+    window.reinitHistorique = reinitHistorique;
+    window.supprimerHistorique = supprimerHistorique;
+    window.ajouterTrancheExtra = ajouterTrancheExtra;
+    window.reinitialiserGrilleParDefaut = reinitialiserGrilleParDefaut;
+    window.sauvegarderParametres = sauvegarderParametres;
+    window.majHistorique = majHistorique;
+    window.afficherSection = afficherSection;
+    window.toggleTarifs = toggleTarifs;
+    document.getElementById('menuBtn').addEventListener('click', () => {
+      const cards = document.getElementById('menu-cards');
+      if (!cards) return;
+      const isVisible = cards.style.display !== 'none';
+      cards.style.display = isVisible ? 'none' : 'grid';
+    });
+    /* ===== INIT ===== */
+    openDB().then(()=>{
+      afficherSection('extra');
+      const me = document.getElementById('montant-extra');
+      if (me) me.addEventListener('input', calculerExtraPreview);
+      const ms = document.getElementById('montant-simple');
+      if (ms) ms.addEventListener('input', calculerSimplePreview);
+      const ma = document.getElementById('montant-autres');
+      if (ma) ma.addEventListener('input', calculerAutresPreview);
+      calculerExtraPreview(); 
+      calculerSimplePreview(); 
+      calculerAutresPreview();
+    }).catch(err=>{ 
+      console.error('DB open err', err); 
+      showToast('⚠️ Erreur de base de données. Fonctionnement en mode mémoire temporaire.', 'error');
+    });
+  </script>
+</body>
+</html>
